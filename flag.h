@@ -19,14 +19,14 @@
 #define MAX_FLAG_COUNT 3
 
 struct flag_opts {
-        char *opt;    // Flag (--help)
-        char *abbr;   // Flag abbreviation (-h)
-        char *help;   // Help message for the flag
-        int nargs;    // Number of args to catch (max 1)
-        char *def;    // Default value as string
-        int required; // Set to 1 if the flag must be set
-        char **var;   // Stores the pointer to the variable where the value
-                      // should be set
+        char *opt;      // Flag (--help)
+        char *abbr;     // Flag abbreviation (-h)
+        char *help;     // Help message for the flag
+        int nargs;      // Number of args to catch (max 1)
+        char *defaults; // Default value as string (default is a keyword)
+        int required;   // Set to 1 if the flag must be set
+        char **var;     // Stores the pointer to the variable where the value
+                        // should be set
 };
 
 struct program_opts {
@@ -41,9 +41,9 @@ struct {
 } static flag_flags = {
         .count = 1,
         .flags = { (struct flag_opts) {
-        .opt = "--help",
-        .abbr = "-h",
-        .help = "Show this help",
+        .opt = (char *) "--help", // the cast is to avoid warnings
+        .abbr = (char *) "-h",
+        .help = (char *) "Show this help",
         } }
 };
 
@@ -90,8 +90,8 @@ prog_help:
                 printf(" \t");
                 if (flag_flags.flags[i].help)
                         printf("%s", flag_flags.flags[i].help);
-                if (flag_flags.flags[i].def)
-                        printf(" (default: %s)", flag_flags.flags[i].def);
+                if (flag_flags.flags[i].defaults)
+                        printf(" (default: %s)", flag_flags.flags[i].defaults);
                 printf("\n");
         }
 }
@@ -155,7 +155,7 @@ flag_parse(int *argc, char ***argv)
         for (j = 0; j < flag_flags.count; j++) {
                 fopt = flag_flags.flags + j;
                 if (fopt->var == NULL || *fopt->var != NULL) continue;
-                if (fopt->def) *fopt->var = fopt->def;
+                if (fopt->defaults) *fopt->var = fopt->defaults;
                 if (fopt->required && *fopt->var == NULL) {
                         fprintf(stderr, "Required flag %s not set!\n",
                                 fopt->opt  ?:
