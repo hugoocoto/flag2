@@ -1,9 +1,10 @@
-/* Copyright (c) 2026 Hugo Coto */
-
-/* This is not tested at all. It works in the few test I did but it can fail */
-
-/* Todo:
- * - accept positional arguments? maybe not, I mean, you can iter over argv
+/* * Copyright (c) 2026 an usc student
+ *
+ * This work is licensed under the Creative Commons Attribution 4.0
+ * International License. To view a copy of this license, visit
+ * http://creativecommons.org/licenses/by/4.0/
+ *
+ * SPDX-License-Identifier: CC-BY-4.0
  */
 
 #ifndef FLAG2_H_
@@ -15,17 +16,17 @@
 #include <string.h>
 #include <unistd.h>
 
-#define MAX_FLAG_COUNT 3
+#define MAX_FLAG_COUNT 4
 
 struct flag_opts {
-        char *opt;      // Flag (--help)
-        char *abbr;     // Flag abbreviation (-h)
-        char *help;     // Help message for the flag
-        int nargs;      // Number of args to catch (max 1)
-        char *defaults; // Default value as string (default is a keyword)
-        int required;   // Set to 1 if the flag must be set
-        char **var;     // Stores the pointer to the variable where the value
-                        // should be set
+        const char *opt;  // Flag (--help)
+        const char *abbr; // Flag abbreviation (-h)
+        char *help;       // Help message for the flag
+        int nargs;        // Number of args to catch (max 1)
+        char *defaults;   // Default value as string (default is a keyword)
+        int required;     // Set to 1 if the flag must be set
+        char **var;       // Stores the pointer to the variable where the value
+                          // should be set
 };
 
 static struct program_opts {
@@ -40,15 +41,14 @@ static struct {
 } flag_flags = {
         .count = 1,
         .flags = { (struct flag_opts) {
-        .opt = (char *) "--help", // the cast is to avoid warnings
-        .abbr = (char *) "-h",
-        .help = (char *) "Show this help",
+        .opt = "--help",
+        .abbr = "-h",
+        .help = "Show this help",
         } }
 };
 
 #define flag_add(var, ...) __flag_add(var, (struct flag_opts) { __VA_ARGS__ })
 #define flag_program(...) __flag_program((struct program_opts) { __VA_ARGS__ })
-
 
 #define YOU_SHOULD_NOT_USE_THIS_FUNCTION
 
@@ -113,6 +113,16 @@ __flag_program(struct program_opts opts)
         flag_prog = opts;
 }
 
+static void
+__flag_pop_arg(int *argc, char ***argv, int *i)
+{
+        if (*i + 1 < *argc) {
+                memmove((*argv)[*i], (*argv)[*i + 1], (*argc - *i - 1) * sizeof(char *));
+                --*i;
+        }
+        --*argc;
+}
+
 static int
 flag_parse(int *argc, char ***argv)
 {
@@ -125,6 +135,7 @@ flag_parse(int *argc, char ***argv)
                 if (strcmp((*argv)[i], "-h") == 0 ||
                     strcmp((*argv)[i], "-help") == 0 ||
                     strcmp((*argv)[i], "--help") == 0) {
+                        __flag_pop_arg(argc, argv, &i);
                         flag_show_help(STDOUT_FILENO);
                         exit(0);
                 }
@@ -160,11 +171,14 @@ flag_parse(int *argc, char ***argv)
                                     (a && (*argv)[i][strlen(fopt->abbr)] == '=')) {
                                         *fopt->var = strchr((*argv)[i], '=') + 1;
                                 } else {
-                                        *fopt->var = (*argv)[i + 1];
                                         ++i;
+                                        *fopt->var = strdup((*argv)[i]);
+                                        __flag_pop_arg(argc, argv, &i);
                                 }
-                        } else
+                        } else {
                                 *fopt->var = (char *) 1;
+                        }
+                        __flag_pop_arg(argc, argv, &i);
                 }
         }
 
@@ -181,6 +195,17 @@ flag_parse(int *argc, char ***argv)
                 }
         }
         return 0;
+}
+
+static void
+flag_free()
+{
+        struct flag_opts *fopt;
+        for (int j = 0; j < flag_flags.count; j++) {
+                fopt = flag_flags.flags + j;
+                if (fopt->var == NULL || *fopt->var != NULL) continue;
+                free(*fopt->var);
+        }
 }
 
 #endif
