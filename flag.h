@@ -1,4 +1,4 @@
-/* * Copyright (c) 2026 an usc student
+/* * Copyright (c) 2026 Hugo Coto Florez
  *
  * This work is licensed under the Creative Commons Attribution 4.0
  * International License. To view a copy of this license, visit
@@ -117,7 +117,7 @@ static void
 __flag_pop_arg(int *argc, char ***argv, int *i)
 {
         if (*i + 1 < *argc) {
-                memmove((*argv)[*i], (*argv)[*i + 1], (*argc - *i - 1) * sizeof(char *));
+                memmove(&(*argv)[*i], &(*argv)[*i + 1], (*argc - *i - 1) * sizeof(char *));
                 --*i;
         }
         --*argc;
