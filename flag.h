@@ -16,6 +16,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#define flag_list(x, ...) (char *[]){ x, ##__VA_ARGS__, 0 }
+
 #define MAX_FLAG_COUNT 4
 
 struct flag_opts {
@@ -32,6 +34,7 @@ struct flag_opts {
 static struct program_opts {
         char *name;
         char *help;
+        char **positionals;
 } flag_prog = { 0 };
 
 
@@ -50,14 +53,12 @@ static struct {
 #define flag_add(var, ...) __flag_add(var, (struct flag_opts) { __VA_ARGS__ })
 #define flag_program(...) __flag_program((struct program_opts) { __VA_ARGS__ })
 
-#define YOU_SHOULD_NOT_USE_THIS_FUNCTION
-
 static void
 flag_show_help(int fileno)
 {
         int i, j;
 
-        dprintf(fileno, "usage: %s", flag_prog.name);
+        dprintf(fileno, "\nusage: %s", flag_prog.name);
         if (flag_flags.count == 0) goto prog_help;
 
         for (i = 0; i < flag_flags.count; i++) {
@@ -69,6 +70,11 @@ flag_show_help(int fileno)
                 for (j = 0; j < flag_flags.flags[i].nargs; j++)
                         dprintf(fileno, " %c", toupper(flag_flags.flags[i].opt[2]));
                 dprintf(fileno, flag_flags.flags[i].required ? "" : "]");
+        }
+
+        if (flag_prog.positionals == NULL) goto prog_help;
+        for (i = 0; flag_prog.positionals[i]; i++) {
+                dprintf(fileno, " %s", flag_prog.positionals[i]);
         }
 
 prog_help:
@@ -92,13 +98,14 @@ prog_help:
                         dprintf(fileno, " (default: %s)", flag_flags.flags[i].defaults);
                 dprintf(fileno, "\n");
         }
+        dprintf(fileno, "\n");
 }
 
-YOU_SHOULD_NOT_USE_THIS_FUNCTION static void
+static void
 __flag_add(char **var, struct flag_opts opts)
 {
         if (flag_flags.count == MAX_FLAG_COUNT) {
-                fprintf(stderr, "Max flag count reached!"
+                fprintf(stderr, "Flag error: Max flag count reached!"
                                 " Change it in " __FILE__ "\n");
                 exit(3);
         }
@@ -107,7 +114,7 @@ __flag_add(char **var, struct flag_opts opts)
         ++flag_flags.count;
 }
 
-YOU_SHOULD_NOT_USE_THIS_FUNCTION static void
+static void
 __flag_program(struct program_opts opts)
 {
         flag_prog = opts;
@@ -128,6 +135,7 @@ flag_parse(int *argc, char ***argv)
 {
         struct flag_opts *fopt;
         int i, j;
+        int has_error = 0;
 
         if (!flag_prog.name || !*flag_prog.name) flag_prog.name = **argv;
 
@@ -160,11 +168,11 @@ flag_parse(int *argc, char ***argv)
 
                         if (fopt->nargs > 0) {
                                 if (fopt->nargs > 1) {
-                                        fprintf(stderr, "Ups! Unsupported nargs > 1\n");
+                                        fprintf(stderr, "Flag error: Unsupported nargs > 1\n");
                                         return 1;
                                 }
                                 if (*argc <= i + 1) {
-                                        fprintf(stderr, "Error: OOB when reading value for `%s`\n", fopt->abbr ?: fopt->opt);
+                                        fprintf(stderr, "Flag error: OOB when reading value for `%s`\n", fopt->abbr ?: fopt->opt);
                                         return 1;
                                 }
                                 if ((o && (*argv)[i][strlen(fopt->opt)] == '=') ||
@@ -187,14 +195,24 @@ flag_parse(int *argc, char ***argv)
                 if (fopt->var == NULL || *fopt->var != NULL) continue;
                 if (fopt->defaults) *fopt->var = fopt->defaults;
                 if (fopt->required && *fopt->var == NULL) {
-                        fprintf(stderr, "Required flag %s not set!\n",
+                        fprintf(stderr, "Flag error: Required flag %s not set!\n",
                                 fopt->opt  ?:
                                 fopt->abbr ?:
                                              "??");
-                        return 2;
+                        has_error = 1;
                 }
         }
-        return 0;
+
+        if (flag_prog.positionals == NULL) return 0;
+        for (j = 0; flag_prog.positionals[j]; j++) {
+                if (j >= *argc - 1) {
+                        fprintf(stderr, "Flag error: Positional argument %s not provided!\n",
+                                flag_prog.positionals[j]);
+                        has_error = 1;
+                }
+        }
+
+        return has_error;
 }
 
 static void

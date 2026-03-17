@@ -9,7 +9,7 @@ main(int argc, char **argv)
         char *foo;
 
         /* Optional. Set program info */
-        flag_program(.help = "Flag2.h by Hugo Coto", .name = "hflag");
+        flag_program(.help = "Flag2.h by Hugo Coto", .positionals = flag_list("pos1", "pos2"));
 
         /* Register flags. The first argument is a pointer that should be set to
          * the constant string with the argument. If the flag is not set, it
