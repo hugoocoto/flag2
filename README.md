@@ -1,6 +1,6 @@
 ## flag.h
 
-Flag parser for C. Inspired by python's argparse. 
+Single file flag parser for C99. Inspired by python's argparse. 
 
 ## Contributing
 
