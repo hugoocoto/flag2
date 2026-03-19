@@ -1,5 +1,19 @@
-/* Copyright (c) 2026 Hugo Coto */
+## flag.h
 
+Flag parser for C. Inspired by python's argparse. 
+
+## Contributing
+
+Check [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## Documentation
+
+Check [flag.h](./flag.h). 
+
+
+### Example
+
+```c
 #include "flag.h"
 
 int
@@ -30,3 +44,4 @@ main(int argc, char **argv)
 
         return 0;
 }
+```
