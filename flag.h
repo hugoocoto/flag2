@@ -120,9 +120,9 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 
-#define flag_list(x, ...) (char *[]){ x, ##__VA_ARGS__, 0 }
+#define flag_list(x, ...) (const char *[]){ x, ##__VA_ARGS__, 0 }
 
-#define MAX_FLAG_COUNT 4
+#define MAX_FLAG_COUNT 5
 
 struct flag_opts {
         const char *opt;        // Flag (--help)
@@ -160,7 +160,7 @@ static struct {
 static void
 flag_show_help(int fileno)
 {
-        int i, j;
+        int i, j, k;
 
         dprintf(fileno, "\nusage: %s", flag_prog.name);
         if (flag_flags.count == 0) goto prog_help;
@@ -172,7 +172,12 @@ flag_show_help(int fileno)
                 else
                         dprintf(fileno, "%s", flag_flags.flags[i].opt);
                 for (j = 0; j < flag_flags.flags[i].nargs; j++)
-                        dprintf(fileno, " %c", toupper(flag_flags.flags[i].opt[2]));
+                        for (k = 0; flag_flags.flags[i].opt[k]; k++) {
+                                if (isalpha(flag_flags.flags[i].opt[k])) {
+                                        dprintf(fileno, " %c", toupper(flag_flags.flags[i].opt[k]));
+                                        break;
+                                }
+                        }
                 dprintf(fileno, flag_flags.flags[i].required ? "" : "]");
         }
 
@@ -194,7 +199,12 @@ prog_help:
                 if (flag_flags.flags[i].abbr)
                         dprintf(fileno, ", %s", flag_flags.flags[i].abbr);
                 for (j = 0; j < flag_flags.flags[i].nargs; j++)
-                        dprintf(fileno, " %c", toupper(flag_flags.flags[i].opt[2]));
+                        for (k = 0; flag_flags.flags[i].opt[k]; k++) {
+                                if (isalpha(flag_flags.flags[i].opt[k])) {
+                                        dprintf(fileno, " %c", toupper(flag_flags.flags[i].opt[k]));
+                                        break;
+                                }
+                        }
                 dprintf(fileno, " \t");
                 if (flag_flags.flags[i].help)
                         dprintf(fileno, "%s", flag_flags.flags[i].help);
