@@ -5,8 +5,8 @@
 int
 main(int argc, char **argv)
 {
-        char *b;
-        char *foo;
+        const char *b;
+        const char *foo;
 
         /* Optional. Set program info.*/
         flag_program(.help = "flag.h by Hugo Coto", .positionals = flag_list("pos1", "pos2"));
